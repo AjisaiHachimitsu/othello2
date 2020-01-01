@@ -20,9 +20,9 @@ struct Vector2i
 
 
 //const Vector2i size = Vector2i(8, 8);
-const int ninzu = 2;
+const int ninzu = 3;
 const string stone[ninzu]
-= { "●","○" };
+= { "●","○" ,"◎"};
 void title();
 void start(vector<vector<int> >& board);
 Vector2i Input(vector<vector<int> >& board, int junban);
@@ -31,7 +31,7 @@ int check_dir(int tate, int yoko, const vector<vector<int> >& board,
 int check(const vector<vector<int> >& board, int tate, int yoko, int junban);
 void putStone(vector<vector<int> >& board, int tate, int yoko, int junban);
 void drawBoard(const vector<vector<int> >& board);
-int checkGameState(const vector<vector<int> >& board);
+int checkGameState(const vector<vector<int> >& board,int ninzu);
 void reverse(int tate, int yoko, vector<vector<int> >& board, int junban);
 void reverse_dir(int tate, int yoko, vector<vector<int> >& board,
 	int junban, int dtate, int dyoko);
@@ -40,16 +40,16 @@ int main()
 	//タイトル
 	title();
 	//初期化
-	const int height = 8;
-	const int width = 8;
+	const int height = 9;
+	const int width = 9;
 	vector<vector<int> > board(height, vector<int>(width, -1)); //盤面を-1で初期化
-	vector<Vector2i> putAble;//おける場所リスト
 	start(board);
 	int junban = 0;
 	drawBoard(board);
-	while (1)
+	while (true)
 	{
-		putAble.clear();
+		vector<Vector2i> putAble;//おける場所リスト
+		//putAble.clear();
 		for (int i = 0; i < board.size(); i++)
 		{
 			for (int j = 0; j < board[0].size(); j++)
@@ -83,10 +83,10 @@ int main()
 		//順番交代
 		junban++;
 		junban %= ninzu;
-		/*if (checkGameState(board) >= size.x * size.y)
+		if (checkGameState(board,ninzu) >= board.size() * board[0].size());
 		{
 			cout << "ゲーム終了";
-		}*/
+		}
 	}
 
 	return 0;
@@ -127,8 +127,9 @@ void title()
 //初期化
 void start(vector<vector<int> >& board)
 {
-	board[3][3] = board[4][4] = 0;
-	board[3][4] = board[4][3] = 1;
+	board[3][3] = board[4][4] = board[5][5]=0;
+	board[3][4] = board[4][5]=board[5][3] = 1;
+	board[3][5] = board[4][3] = board[5][4] = 2;
 }
 //入力
 Vector2i Input(vector<vector<int> >& board, int junban)
@@ -330,30 +331,37 @@ void drawBoard(const vector<vector<int> >& board)
 }
 
 //数えて表示 ゲーム終了なら1 続行なら0
-int checkGameState(const vector<vector<int> >& board)
+int checkGameState(const vector<vector<int> >& board,int ninzu)
 {
-	int black = 0, white = 0;
-	for (int i = 0; i < 8; i++)
+	vector<int> countStone(ninzu, 0);
+	//int black = 0, white = 0;
+	int sum = 0;
+	for (int i = 0; i < board.size(); i++)
 	{
-		for (int j = 0; j < 8; j++)
+		for (int j = 0; j < board[0].size(); j++)
 		{
-			if (board[i][j] == 1)
-				white++;
-			else if (board[i][j] == 2)
-				black++;
+			if (board[i][j] != -1)
+			{
+				countStone[board[i][j]]++;
+				sum++;
+			}
 		}
 	}
-	cout << "白" << white << "枚\t";
-	cout << "黒" << black << "枚\t";
-	cout << "合計" << white + black << "枚\n\n";
-	if (white + black == 64)
+	for (int i = 0; i < ninzu; i++)
 	{
-		if (black > white)
+		cout << stone[i] << countStone[i] << "枚" << endl;
+	}
+	const int height = board.size();
+	const int width = board[0].size();
+	cout << "合計" << sum << "枚\n\n";
+	if (sum == width*height)
+	{
+		/*if (black > white)
 			cout << "黒の勝ちです。\n";
 		else if (white > black)
 			cout << "白の勝ちです。\n";
 		else
-			cout << "引き分けです。\n";
+			cout << "引き分けです。\n";*/
 		return 1;
 	}
 	return 0;
