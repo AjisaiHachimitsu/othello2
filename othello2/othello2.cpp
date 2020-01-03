@@ -22,8 +22,8 @@ struct Vector2i
 };
 
 
-const int ninzu = 3;
-const string stone[ninzu]
+const int NINZU = 3;
+const string stone[NINZU]
 = { "●","○" ,"◎"};
 void title();
 void start(vector<vector<int> >& board);
@@ -58,6 +58,7 @@ int main()
 	int junban = 0;
 	drawBoard(board);
 	int passcount = 0;
+	const int ninzu=NINZU;
 	while (true)
 	{
 		vector<Vector2i> putAble=serchPutAble(board,junban);//おける場所リスト
@@ -72,9 +73,10 @@ int main()
 			Vector2i input;
 			while (true)
 			{
-				if(junban==0)
+				cout << stone[junban] << "の番です。";
+				/*if(junban==0)
 					input = Input(board, junban);
-				else
+				else*/
 					input = minimax(CPU1,board,putAble,ninzu,junban,1);
 				int flag = 0;
 				for (int i = 0; i < putAble.size(); i++)
@@ -98,7 +100,7 @@ int main()
 		//順番交代
 		junban++;
 		junban %= ninzu;
-		cout << passcount << endl;
+		//cout << passcount << endl;
 		vector<int> countstone=CountStone(board,ninzu);
 		if (passcount >= ninzu)
 		{
@@ -168,7 +170,6 @@ vector<Vector2i> serchPutAble(const vector<vector<int> >& board,int junban)
 //入力
 Vector2i Input(const vector<vector<int> >& board, int junban)
 {
-	cout << stone[junban] << "の番です。";
 
 	int tate, yoko;
 		cout << "石を置く位置を指定してください\n";
@@ -365,16 +366,32 @@ Vector2i randomPut(const vector<Vector2i>& putAble)
 
 Vector2i minimax(int(*f)(const vector<vector<int>>&board, int ninzu, int junban),const vector<vector<int> >&board,const vector<Vector2i>&putAble,int ninzu, int junban, int deep)
 {
-	vector<int>score;
-	for (int i = 0; i < putAble.size(); i++)
+	//const int num = (pow(ninzu, deep) - 1) / (ninzu - 1);
+	Vector2i put;
+	for (int i = 0; i < ninzu*deep; i++)
 	{
-		auto board2 = board;
-		putStone(board2, putAble[i].i, putAble[i].j, junban);
-		score.push_back(f(board, ninzu, junban));
+		vector<vector<vector<int> > >  boards;
+		boards.push_back(board);
+		for (int j = 0; j <pow(ninzu,i); j++)
+		{
+			vector<int>score;
+			for (int k = 0; k < putAble.size(); k++)
+			{
+				auto board2 = *boards.end();
+				putStone(board2, putAble[k].i, putAble[k].j, junban);
+				score.push_back(f(board2, ninzu, junban));
+			}
+			vector<int>maxindex;
+			Max(score, maxindex);
+			put = putAble[maxindex[mt() % maxindex.size()]];
+		}
+		junban++;
+		junban %= ninzu;
 	}
-	vector<int>maxindex;
-	Max(score,maxindex);
-	return putAble[maxindex[mt()%maxindex.size()]];
+	vector<int>score;
+
+	cout << put.i+1 << "," << put.j+1 << endl;;
+	return put;
 }
 
 int CPU1(const vector<vector<int>>& board,int ninzu, int junban)
