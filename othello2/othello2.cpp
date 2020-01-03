@@ -1,7 +1,9 @@
 ﻿#include<iostream>
 #include<vector>
 #include<string>
+#include<random>
 using namespace std;
+std::mt19937 mt;
 struct Vector2i
 {
 	int i,j;
@@ -19,22 +21,27 @@ struct Vector2i
 };
 
 
-//const Vector2i size = Vector2i(8, 8);
 const int ninzu = 3;
 const string stone[ninzu]
 = { "●","○" ,"◎"};
 void title();
 void start(vector<vector<int> >& board);
-Vector2i Input(vector<vector<int> >& board, int junban);
+vector<Vector2i> serchPutAble(const vector<vector<int> >& board,int junban );
+Vector2i Input(const vector<vector<int> >& board, int junban);
 int check_dir(int tate, int yoko, const vector<vector<int> >& board,
 	int junban, int dtate, int dyoko);
 int check(const vector<vector<int> >& board, int tate, int yoko, int junban);
 void putStone(vector<vector<int> >& board, int tate, int yoko, int junban);
 void drawBoard(const vector<vector<int> >& board);
-int checkGameState(const vector<vector<int> >& board,int ninzu);
+vector<int> CountStone(const vector<vector<int> >& board,int ninzu);
 void reverse(int tate, int yoko, vector<vector<int> >& board, int junban);
 void reverse_dir(int tate, int yoko, vector<vector<int> >& board,
 	int junban, int dtate, int dyoko);
+void gameOver(const vector<int>& countStone);
+Vector2i randomPut(const vector<Vector2i>& putAble);
+Vector2i minimax(int (*f)(const vector<vector<int > >&, int), int junban);
+
+
 int main()
 {
 	//タイトル
@@ -46,46 +53,54 @@ int main()
 	start(board);
 	int junban = 0;
 	drawBoard(board);
+	int passcount = 0;
 	while (true)
 	{
-		vector<Vector2i> putAble;//おける場所リスト
+		vector<Vector2i> putAble=serchPutAble(board,junban);//おける場所リスト
 		//putAble.clear();
-		for (int i = 0; i < board.size(); i++)
+		if (putAble.empty())
 		{
-			for (int j = 0; j < board[0].size(); j++)
-			{
-				if (check(board, i, j, junban) == 1)
-					putAble.push_back(Vector2i(i, j));
-			}
+			passcount++;
+			cout << "おける場所がないので" << stone[junban] << "の番はスキップします。" << endl;
 		}
-		Vector2i input;
-		while (true)
-		{
-			input=Input(board, junban);
-			int flag = 0;
-			for (int i = 0; i < putAble.size(); i++)
+		else {
+			passcount = 0;
+			Vector2i input;
+			while (true)
 			{
-				if (input == putAble[i])
+				/*if(junban==0)
+					input = Input(board, junban);
+				else*/
+					input = randomPut(putAble);
+				int flag = 0;
+				for (int i = 0; i < putAble.size(); i++)
 				{
-					flag = 1;
+					if (input == putAble[i])
+					{
+						flag = 1;
+						break;
+					}
+				}
+				if (flag == 1)
+				{
 					break;
 				}
+				cout << "そこには置けません" << endl;
 			}
-			if (flag == 1)
-			{
-				break;
-			}
-			cout << "そこには置けません" << endl;
+
+			putStone(board, input.i, input.j, junban);
 		}
-		
-		putStone(board, input.i, input.j, junban);
 		drawBoard(board);
 		//順番交代
 		junban++;
 		junban %= ninzu;
-		if (checkGameState(board,ninzu) >= board.size() * board[0].size());
+		cout << passcount << endl;
+		vector<int> countstone=CountStone(board,ninzu);
+		if (passcount >= ninzu)
 		{
-			cout << "ゲーム終了";
+			cout << "ゲーム終了\n";
+			gameOver(countstone);
+			return 0;
 		}
 	}
 
@@ -130,9 +145,24 @@ void start(vector<vector<int> >& board)
 	board[3][3] = board[4][4] = board[5][5]=0;
 	board[3][4] = board[4][5]=board[5][3] = 1;
 	board[3][5] = board[4][3] = board[5][4] = 2;
+	std::random_device rd;
+	mt = std::mt19937(rd());
+}
+vector<Vector2i> serchPutAble(const vector<vector<int> >& board,int junban)
+{
+	vector<Vector2i>putAble;
+	for (int i = 0; i < board.size(); i++)
+	{
+		for (int j = 0; j < board[0].size(); j++)
+		{
+			if (check(board, i, j, junban) == 1)
+				putAble.push_back(Vector2i(i, j));
+		}
+	}
+	return putAble;
 }
 //入力
-Vector2i Input(vector<vector<int> >& board, int junban)
+Vector2i Input(const vector<vector<int> >& board, int junban)
 {
 	cout << stone[junban] << "の番です。";
 
@@ -294,7 +324,7 @@ void reverse_dir(int tate, int yoko, vector<vector<int> >& board,
 	tate += dtate;  // 隣に移動
 	yoko += dyoko;  // 隣に移動
 
-	board[tate][yoko] = junban; // 隣は自分の色に置き換え(はさめることは確認済み
+	board[tate][yoko] = junban; // 隣は自分の色に置き換え(はさめることは確認済み)
 
 	while (1) {
 
@@ -310,15 +340,43 @@ void reverse_dir(int tate, int yoko, vector<vector<int> >& board,
 	}
 }
 
+void gameOver(const vector<int>& countStone)
+{
+	int max = 0;
+	for (int i = 0; i < countStone.size(); i++)
+	{
+		if (max < countStone[i])
+			max = countStone[i];
+	}
+	vector<int> winner;
+	for (int i = 0; i < countStone.size(); i++)
+	{
+		if (countStone[i] == max)
+			winner.push_back(i);
+	}
+	for (int i = 0; i < winner.size(); i++)
+	{
+		cout << stone[winner[i]];
+		if (i != winner.size()-1)
+			cout << "と";
+	}
+	cout << "の勝ちです。" << endl;
+}
+
+Vector2i randomPut(const vector<Vector2i>& putAble)
+{
+	return putAble[rand::mt()%putAble.size()];
+}
+
 //オセロ盤表示
 void drawBoard(const vector<vector<int> >& board)
 {
-	cout << "  　１　２　３　４　５　６　７　８\n"
-		<< "  ＋ー＋ー＋ー＋ー＋ー＋ー＋ー＋ー＋\n";
-	for (int i = 1; i <= 8; i++)
+	cout << "  　１　２　３　４　５　６　７　８　９\n"
+		<< "  ＋ー＋ー＋ー＋ー＋ー＋ー＋ー＋ー＋ー＋\n";
+	for (int i = 1; i <= board.size(); i++)
 	{
 		cout << " " << i << "｜";
-		for (int j = 1; j <= 8; j++)
+		for (int j = 1; j <= board[0].size(); j++)
 		{
 			if (board[i - 1][j - 1] == -1)
 				cout << "　";
@@ -326,12 +384,12 @@ void drawBoard(const vector<vector<int> >& board)
 				cout << stone[board[i - 1][j - 1]];
 			cout << "｜";
 		}
-		cout << "\n  ＋ー＋ー＋ー＋ー＋ー＋ー＋ー＋ー＋\n";
+		cout << "\n  ＋ー＋ー＋ー＋ー＋ー＋ー＋ー＋ー＋ー＋\n";
 	}
 }
 
-//数えて表示 ゲーム終了なら1 続行なら0
-int checkGameState(const vector<vector<int> >& board,int ninzu)
+//数えて表示 
+vector<int> CountStone(const vector<vector<int> >& board,int ninzu)
 {
 	vector<int> countStone(ninzu, 0);
 	//int black = 0, white = 0;
@@ -354,15 +412,5 @@ int checkGameState(const vector<vector<int> >& board,int ninzu)
 	const int height = board.size();
 	const int width = board[0].size();
 	cout << "合計" << sum << "枚\n\n";
-	if (sum == width*height)
-	{
-		/*if (black > white)
-			cout << "黒の勝ちです。\n";
-		else if (white > black)
-			cout << "白の勝ちです。\n";
-		else
-			cout << "引き分けです。\n";*/
-		return 1;
-	}
-	return 0;
+	return countStone;
 }
