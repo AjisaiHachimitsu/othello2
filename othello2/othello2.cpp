@@ -2,6 +2,7 @@
 #include<vector>
 #include<string>
 #include<random>
+#include<cmath>
 using namespace std;
 std::mt19937 mt;
 struct Vector2i
@@ -33,13 +34,16 @@ int check_dir(int tate, int yoko, const vector<vector<int> >& board,
 int check(const vector<vector<int> >& board, int tate, int yoko, int junban);
 void putStone(vector<vector<int> >& board, int tate, int yoko, int junban);
 void drawBoard(const vector<vector<int> >& board);
-vector<int> CountStone(const vector<vector<int> >& board,int ninzu);
+vector<int> CountStone(const vector<vector<int> >& board,int ninzu,bool isShow=true);
 void reverse(int tate, int yoko, vector<vector<int> >& board, int junban);
 void reverse_dir(int tate, int yoko, vector<vector<int> >& board,
 	int junban, int dtate, int dyoko);
 void gameOver(const vector<int>& countStone);
 Vector2i randomPut(const vector<Vector2i>& putAble);
-Vector2i minimax(int (*f)(const vector<vector<int > >&, int), int junban);
+Vector2i minimax(int (*f)(const vector<vector<int > >&board, int ninzu,int junban),const vector<vector<int> >&board,const vector<Vector2i>&putAble, int ninzu,int junban,int deep);//fは評価関数
+int CPU1(const vector<vector<int> >& board,int ninzu, int junban);//石の数優先
+int Max(const vector<int>& data,vector<int>&maxIndex);
+int Min(const vector<int>& data,vector<int>&minIndex);
 
 
 int main()
@@ -68,10 +72,10 @@ int main()
 			Vector2i input;
 			while (true)
 			{
-				/*if(junban==0)
+				if(junban==0)
 					input = Input(board, junban);
-				else*/
-					input = randomPut(putAble);
+				else
+					input = minimax(CPU1,board,putAble,ninzu,junban,1);
 				int flag = 0;
 				for (int i = 0; i < putAble.size(); i++)
 				{
@@ -342,18 +346,9 @@ void reverse_dir(int tate, int yoko, vector<vector<int> >& board,
 
 void gameOver(const vector<int>& countStone)
 {
-	int max = 0;
-	for (int i = 0; i < countStone.size(); i++)
-	{
-		if (max < countStone[i])
-			max = countStone[i];
-	}
+
 	vector<int> winner;
-	for (int i = 0; i < countStone.size(); i++)
-	{
-		if (countStone[i] == max)
-			winner.push_back(i);
-	}
+	int max = Max(countStone,winner);
 	for (int i = 0; i < winner.size(); i++)
 	{
 		cout << stone[winner[i]];
@@ -365,7 +360,35 @@ void gameOver(const vector<int>& countStone)
 
 Vector2i randomPut(const vector<Vector2i>& putAble)
 {
-	return putAble[rand::mt()%putAble.size()];
+	return putAble[mt()%putAble.size()];
+}
+
+Vector2i minimax(int(*f)(const vector<vector<int>>&board, int ninzu, int junban),const vector<vector<int> >&board,const vector<Vector2i>&putAble,int ninzu, int junban, int deep)
+{
+	vector<int>score;
+	for (int i = 0; i < putAble.size(); i++)
+	{
+		auto board2 = board;
+		putStone(board2, putAble[i].i, putAble[i].j, junban);
+		score.push_back(f(board, ninzu, junban));
+	}
+	vector<int>maxindex;
+	Max(score,maxindex);
+	return putAble[maxindex[mt()%maxindex.size()]];
+}
+
+int CPU1(const vector<vector<int>>& board,int ninzu, int junban)
+{
+	int value = 0;
+	auto countstone = CountStone(board, ninzu,false);
+	for (int i = 0; i < countstone.size(); i++)
+	{
+		if (i == junban)
+			value += countstone[i];
+		else
+			value -= countstone[i];
+	}
+	return value;
 }
 
 //オセロ盤表示
@@ -389,7 +412,7 @@ void drawBoard(const vector<vector<int> >& board)
 }
 
 //数えて表示 
-vector<int> CountStone(const vector<vector<int> >& board,int ninzu)
+vector<int> CountStone(const vector<vector<int> >& board,int ninzu,bool isShow)
 {
 	vector<int> countStone(ninzu, 0);
 	//int black = 0, white = 0;
@@ -405,12 +428,49 @@ vector<int> CountStone(const vector<vector<int> >& board,int ninzu)
 			}
 		}
 	}
-	for (int i = 0; i < ninzu; i++)
+	if (isShow) 
 	{
-		cout << stone[i] << countStone[i] << "枚" << endl;
+		for (int i = 0; i < ninzu; i++)
+		{
+			cout << stone[i] << countStone[i] << "枚" << endl;
+		}
+
+		cout << "合計" << sum << "枚\n\n";
 	}
-	const int height = board.size();
-	const int width = board[0].size();
-	cout << "合計" << sum << "枚\n\n";
 	return countStone;
 }
+
+int Max(const vector<int>& data,vector<int>&maxIndex)
+{
+	int max = data[0];
+	for (int i = 1; i < data.size(); i++)
+	{
+		if (max < data[i])
+			max = data[i];
+	}
+	maxIndex.clear();
+	for (int i = 0; i < data.size(); i++)
+	{
+		if (data[i] == max)
+			maxIndex.push_back(i);
+	}
+	return max;
+}
+
+int Min(const vector<int>& data,vector<int>&minIndex)
+{
+	int min = data[0];
+	for (int i = 1; i < data.size(); i++)
+	{
+		if (min > data[i])
+			min = data[i];
+	}
+	minIndex.clear();
+	for (int i = 0; i < data.size(); i++)
+	{
+		if (data[i] == min)
+			minIndex.push_back(i);
+	}
+	return min;
+}
+
