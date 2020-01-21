@@ -40,11 +40,12 @@ void reverse_dir(int tate, int yoko, vector<vector<int> >& board,
 	int junban, int dtate, int dyoko);
 void gameOver(const vector<int>& countStone);
 Vector2i randomPut(const vector<Vector2i>& putAble);
-Vector2i minimax(int (*f)(const vector<vector<int > >& board, int ninzu, int junban), const vector<Vector2i>& putAble, int ninzu, int junban, int deep);//fは評価関数
+Vector2i minimax(int (*f)(const vector<vector<int > >& board, int ninzu, int junban), const vector<vector<int> >& board, int ninzu, int junban, int deep);//fは評価関数
 int CPU1(const vector<vector<int> >& board, int ninzu, int junban);//石の数優先
 int Max(const vector<int>& data, vector<int>& maxIndex);
 int Min(const vector<int>& data, vector<int>& minIndex);
-
+int Max(const vector<int>& data);
+int Min(const vector<int>& data);
 
 int main()
 {
@@ -366,36 +367,59 @@ Vector2i randomPut(const vector<Vector2i>& putAble)
 
 Vector2i minimax(int(*f)(const vector<vector<int>>& board, int ninzu, int junban), const vector<vector<int> >& board, int ninzu, int junban, int deep)
 {
-	//const int num = (pow(ninzu, deep) - 1) / (ninzu - 1);
+	//ゲーム木構築
 	Vector2i put;
-	vector<vector<vector<vector<int> > > >gameKi;
-	gameKi.push_back(vector<vector<vector<int> > >(1,board));
-	for (int i = 0; i < deep; i++)
+	vector<vector<vector<vector<vector<int> > > > > gameKi(1);
+	vector<vector<vector<vector<int> > > >oneturn;//1ターンのゲーム情報
+	gameKi[0] = (vector<vector<vector<vector<int> > > >(1, vector<vector<vector<int> > >(1, board)));
+	int junban2 = junban;
+	for (int i = 0; i < 3*deep+1; i++)
 	{
+		vector<vector<vector<int > > >a;
 		for (int j = 0; j < gameKi[i].size(); j++)
 		{
-			auto putAble = serchPutAble(gameKi[i][j], junban);
-			for (int k = 0; k < putAble.size(); k++)
+			for (int k = 0; k < gameKi[i][j].size(); k++)
 			{
-				gameKi.push_back;
-				gameKi[i + 1].push_back;
-				auto& board2 = gameKi[i + 1][j + 1];
-				putStone(board2, putAble[k].i, putAble[k].j, junban);
+				vector<Vector2i> putAble = serchPutAble(gameKi[i][j][k], junban2);
+				for (int l = 0; l < putAble.size(); l++)
+				{
+					vector<vector<int> > board2 = gameKi[i][j][k];
+					putStone(board2, putAble[k].i, putAble[k].j, junban2);
+					a.push_back(board2);
+				}
+				oneturn.push_back(a);
 			}
 		}
-		junban++;
-		junban %= ninzu;
+		gameKi.push_back(oneturn);
+		junban2++;
+		junban2 %= ninzu;
 	}
-	vector<int>score(gameKi[deep].size());
-	/*vector<int>maxindex;
-	Max(score, maxindex);
-	put = putAble[maxindex[mt() % maxindex.size()]];
-	junban++;
-	junban %= ninzu;
-	vector<int>score;
+	cout << gameKi.size() << endl << gameKi[0].size() << endl << gameKi[0][0].size();
 
-	cout << put.i + 1 << "," << put.j + 1 << endl;;
-	return put;*/
+	vector<vector<vector<int> > > gamekiValue(gameKi.size());
+	int End = gameKi.size() - 1;
+	gamekiValue[End].resize(gameKi[End].size());
+	for (int j = 0; j < gameKi[End].size(); j++)
+	{
+		gamekiValue[End][j].resize(gameKi[End][j].size);
+		vector<int>maxindex;
+		for (int k = 0; k < gameKi[End][j].size(); k++)
+		{
+			gamekiValue[End][j][k] = f(gameKi[End][j][k], ninzu, junban);
+		}
+	}
+	Max(gamekiValue[End][j]);
+	for (int i = gameKi.size() - 1; i >= 0; i--)
+	{
+		for (int j = 0; j < gameKi[i-1].size(); j++)
+		{
+			for (int k = 0; k < gameKi[i - 1][j].size(); k++)
+			{
+
+			}
+		}
+	}
+	return Vector2i();
 }
 
 int CPU1(const vector<vector<int>>& board, int ninzu, int junban)
@@ -495,3 +519,23 @@ int Min(const vector<int>& data, vector<int>& minIndex)
 	return min;
 }
 
+int Max(const vector<int>& data)
+{
+	int max = data[0];
+	for (int i = 1; i < data.size(); i++)
+	{
+		if (max < data[i])
+			max = data[i];
+	}
+	return max;
+}
+int Min(const vector<int>& data)
+{
+	int min = data[0];
+	for (int i = 1; i < data.size(); i++)
+	{
+		if (min > data[i])
+			min = data[i];
+	}
+	return min;
+}
